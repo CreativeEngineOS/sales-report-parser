@@ -44,12 +44,22 @@ def parse_nurphoto_pdf(pdf_bytes):
                 data["Description"] = line.split("Description:")[1].strip()
             elif line.startswith("Fee:"):
                 fee_str = line.split("Fee:")[1].strip().replace("€", "").replace(",", ".")
-                data["Fee"] = float(fee_str)
+                try:
+                    data["Fee"] = float(fee_str) if fee_str else 0.0
+                except ValueError:
+                    data["Fee"] = 0.0
             elif line.startswith("Your share (%):"):
-                data["Your Share (%)"] = int(line.split(":")[1].strip())
+                percent = line.split(":")[1].strip()
+                try:
+                    data["Your Share (%)"] = int(percent) if percent else 0
+                except ValueError:
+                    data["Your Share (%)"] = 0
             elif line.startswith("Your share (€):"):
                 share_str = line.split(":")[1].strip().replace("€", "").replace(",", ".")
-                data["Your Share"] = float(share_str)
+                try:
+                    data["Your Share"] = float(share_str) if share_str else 0.0
+                except ValueError:
+                    data["Your Share"] = 0.0
 
         media_id = data["Media Number"]
         data["Slug?"] = extract_slug(data["Original Filename"])
