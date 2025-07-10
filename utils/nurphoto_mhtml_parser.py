@@ -69,7 +69,11 @@ def parse_nurphoto_mhtml(mhtml_bytes):
 
         records.append(data)
 
-    df = pd.DataFrame(records)
+  df = pd.DataFrame(records)
+
+if "Thumbnail" in df.columns:
     thumb_col = df.pop("Thumbnail")
     df.insert(0, "Thumbnail", thumb_col)
-    return df
+
+return df
+
