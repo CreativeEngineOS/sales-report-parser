@@ -52,7 +52,7 @@ def parse_getty_csv(csv_file, with_keywords=False):
     df["Your Share (%)"] = df["Your Share (%)"].astype(str).str.extract(r"([0-9.]+)").astype(float)
     df["Your Share"] = df["Your Share"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
 
-    # Reset index to avoid any possible duplicate index issues
+    # Reset index to ensure it's unique before assigning new columns
     df = df.reset_index(drop=True)
 
     df["Media Link"] = df["Media Number"].apply(
