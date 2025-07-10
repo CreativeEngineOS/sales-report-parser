@@ -1,6 +1,6 @@
 # utils/parsers.py
 
-import pandas as pd
+import pandas as pd  # ✅ Add this line
 
 def parse_pdf(pdf_bytes, agency):
     # This is a dummy dataset for testing the pipeline
