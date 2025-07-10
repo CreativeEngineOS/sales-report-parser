@@ -14,3 +14,5 @@ requests
 
 # Optional CSV encoding handling
 chardet
+
+beautifulsoup4==4.12.3
