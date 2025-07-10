@@ -21,12 +21,12 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         value = clean(cells[1].get_text(strip=True))
 
         if "media number" in label:
-            if current:  # flush previous
-                if "Media Number" in current:
-                    media_id = current["Media Number"]
-                    current["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
-                    current["Thumbnail"] = f"<a href='{current['Media Link']}' target='_blank'><img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/></a>"
-                    records.append(current)
+            if current and "Media Number" in current:
+                media_id = current["Media Number"]
+                current["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
+                current["Thumbnail"] = f"<a href='{current['Media Link']}' target='_blank'><img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/></a>"
+                records.append(current)
+
             current = {
                 "Media Number": value,
                 "Filename": "",
@@ -55,15 +55,15 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         elif "description" in label:
             current["Description"] = value
         elif "fee" in label and "share" not in label:
-            fee_match = re.search(r"€\s?([\d,.]+)", value)
-            if fee_match:
-                try:
-                    current["Fee"] = float(fee_match.group(1).replace(",", "."))
-                except:
-                    current["Fee"] = 0.0
+            try:
+                fee_val = re.sub(r"[^\d,\.]", "", value)
+                current["Fee"] = float(fee_val.replace(",", "."))
+            except:
+                current["Fee"] = 0.0
         elif "your share (%)" in label:
             try:
-                current["Your Share (%)"] = float(re.sub(r"[^\d.]", "", value))
+                pct_val = re.sub(r"[^\d.]", "", value)
+                current["Your Share (%)"] = float(pct_val)
             except:
                 current["Your Share (%)"] = 0.0
 
@@ -73,7 +73,6 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         current["Thumbnail"] = f"<a href='{current['Media Link']}' target='_blank'><img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/></a>"
         records.append(current)
 
-    # After building all records, recalculate share value
     for rec in records:
         if rec["Fee"] and rec["Your Share (%)"]:
             rec["Your Share"] = round((rec["Fee"] * rec["Your Share (%)"] / 100), 2)
