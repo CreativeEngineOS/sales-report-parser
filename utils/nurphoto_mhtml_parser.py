@@ -25,7 +25,7 @@ def parse_nurphoto_mhtml(mhtml_bytes):
                 if "Media Number" in current:
                     media_id = current["Media Number"]
                     current["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
-                    current["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/>"
+                    current["Thumbnail"] = f"<a href='{current['Media Link']}' target='_blank'><img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/></a>"
                     records.append(current)
             current = {
                 "Media Number": value,
@@ -34,10 +34,10 @@ def parse_nurphoto_mhtml(mhtml_bytes):
                 "Customer": "",
                 "Credit": "",
                 "Description": "",
-                "Fee": 0.0,
+                "Fee": None,
                 "Currency": "EUR",
-                "Your Share (%)": 0,
-                "Your Share": 0.0,
+                "Your Share (%)": None,
+                "Your Share": None,
                 "Agency": "NurPhoto",
                 "Media Link": "",
                 "Thumbnail": "",
@@ -56,24 +56,24 @@ def parse_nurphoto_mhtml(mhtml_bytes):
             current["Description"] = value
         elif "fee" in label and "share" not in label:
             try:
-                current["Fee"] = float(value.replace("€", "").replace(",", "."))
+                current["Fee"] = float(re.sub(r"[^\d.,]", "", value).replace(",", "."))
             except:
                 current["Fee"] = 0.0
         elif "your share (%)" in label:
             try:
-                current["Your Share (%)"] = int(value)
+                current["Your Share (%)"] = float(re.sub(r"[^\d.]", "", value))
             except:
-                current["Your Share (%)"] = 0
+                current["Your Share (%)"] = 0.0
         elif "your share (€" in label:
             try:
-                current["Your Share"] = float(value.replace("€", "").replace(",", "."))
+                current["Your Share"] = float(re.sub(r"[^\d.,]", "", value).replace(",", "."))
             except:
                 current["Your Share"] = 0.0
 
     if current and "Media Number" in current:
         media_id = current["Media Number"]
         current["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
-        current["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/>"
+        current["Thumbnail"] = f"<a href='{current['Media Link']}' target='_blank'><img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/></a>"
         records.append(current)
 
     df = pd.DataFrame(records)
