@@ -2,9 +2,7 @@ import io
 
 from utils.getty_csv_parser import parse_getty_csv
 from utils.getty_statement_parser import parse_getty_statement_csv
-from utils.nurphoto_csv_parser import parse_nurphoto_csv
 from utils.nurphoto_mhtml_parser import parse_nurphoto_mhtml
-from utils.editorialfootage_csv_parser import parse_editorialfootage_csv
 from utils.editorialfootage_mhtml_parser import parse_editorialfootage_mhtml
 
 def detect_agency_from_text(text):
@@ -36,21 +34,14 @@ def parse_pdf(pdf_bytes, agency, with_keywords=False, filename=""):
             return parse_editorialfootage_mhtml(io.BytesIO(pdf_bytes))
         else:
             raise ValueError("Unsupported MHTML agency for file: " + filename)
-    # Handle CSV and TXT files
+    # Handle CSV and TXT files for Getty/iStock only
     if filename_lower.endswith(".csv") or filename_lower.endswith(".txt"):
-        # Getty/iStock logic
         if agency == "Getty/iStock":
             if "statement" in filename_lower or "dm-" in filename_lower:
                 return parse_getty_statement_csv(io.BytesIO(pdf_bytes))
             else:
                 return parse_getty_csv(io.BytesIO(pdf_bytes), with_keywords=with_keywords)
-        # Nurphoto
-        elif agency == "Nurphoto":
-            return parse_nurphoto_csv(io.BytesIO(pdf_bytes))
-        # EditorialFootage
-        elif agency == "EditorialFootage":
-            return parse_editorialfootage_csv(io.BytesIO(pdf_bytes))
         else:
-            raise ValueError("Unsupported agency for CSV file: " + agency)
+            raise ValueError("Unsupported agency for CSV/TXT file: " + agency)
     # Unsupported file type
     raise ValueError("Unsupported file type: " + filename)
