@@ -42,14 +42,16 @@ def parse_getty_csv(csv_file, with_keywords=False):
         print("Warning: Duplicate columns detected and will be renamed.")
 
     # Check for duplicate index labels and force reset
+    df = df.reset_index(drop=True)
     if not df.index.is_unique:
-        print("Warning: Duplicate DataFrame index detected. Resetting index.")
-        df = df.reset_index(drop=True)
+        print("Critical error: DataFrame index is still not unique after reset. Forcing unique index.")
+        df.index = pd.RangeIndex(len(df))
 
     # Optionally drop duplicate rows based on Media Number
     if "Media Number" in df.columns and df["Media Number"].duplicated().any():
         print("Warning: Duplicate Media Number values detected. Keeping first occurrence.")
         df = df.drop_duplicates(subset=["Media Number"], keep="first").reset_index(drop=True)
+        df.index = pd.RangeIndex(len(df))
 
     col_map = {}
     for col in raw_cols:
@@ -80,17 +82,15 @@ def parse_getty_csv(csv_file, with_keywords=False):
     df["Your Share (%)"] = df["Your Share (%)"].astype(str).str.extract(r"([0-9.]+)").astype(float)
     df["Your Share"] = df["Your Share"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
 
-    # FINAL index check before assignment
-    if not df.index.is_unique:
-        print("Error: DataFrame index is still not unique before assignment. Resetting index again.")
-        df = df.reset_index(drop=True)
-
-    # Assign Media Link and Thumbnail columns safely
-    df["Media Link"] = df["Media Number"].apply(
-        lambda x: f"https://www.istockphoto.com/photo/gm{str(x)}" if str(x).isdigit() else "")
-    df["Thumbnail"] = df["Media Number"].apply(
-        lambda x: f"<a href='https://www.istockphoto.com/photo/gm{str(x)}' target='_blank'><img src='https://media.gettyimages.com/photos/{str(x)}' width='100'/></a>"
-        if str(x).isdigit() else "")
+    # Safe assignment using numpy to avoid index issues
+    df["Media Link"] = pd.Series(
+        [f"https://www.istockphoto.com/photo/gm{str(x)}" if str(x).isdigit() else "" for x in df["Media Number"].values],
+        index=df.index
+    )
+    df["Thumbnail"] = pd.Series(
+        [f"<a href='https://www.istockphoto.com/photo/gm{str(x)}' target='_blank'><img src='https://media.gettyimages.com/photos/{str(x)}' width='100'/></a>" if str(x).isdigit() else "" for x in df["Media Number"].values],
+        index=df.index
+    )
 
     df["Filename"] = ""
     df["Original Filename"] = ""
