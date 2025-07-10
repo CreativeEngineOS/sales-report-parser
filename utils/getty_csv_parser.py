@@ -19,8 +19,17 @@ def parse_getty_csv(csv_file, with_keywords=False):
 
         df = pd.read_csv(io.StringIO(text), delimiter=delimiter)
 
-        # Ensure unique column names to avoid assignment errors
-        df.columns = pd.io.parsers.ParserBase({'names': df.columns})._maybe_dedup_names(df.columns)
+        # Safely deduplicate column names
+        seen = {}
+        new_cols = []
+        for col in df.columns:
+            if col not in seen:
+                seen[col] = 1
+                new_cols.append(col)
+            else:
+                seen[col] += 1
+                new_cols.append(f"{col}_{seen[col]}")
+        df.columns = new_cols
 
     except Exception as e:
         raise ValueError(f"CSV parsing failed: {str(e)}")
@@ -41,13 +50,11 @@ def parse_getty_csv(csv_file, with_keywords=False):
             col_map[col] = "Your Share"
         elif "royalty rate" in col_l or "your share (%)" in col_l:
             col_map[col] = "Your Share (%)"
-        elif col_l == "currency":
-            if "Currency" not in col_map.values():  # only map first valid 'currency'
-                col_map[col] = "Currency"
+        elif col_l == "currency" and "Currency" not in col_map.values():
+            col_map[col] = "Currency"
 
     df = df.rename(columns=col_map)
 
-    # Fill in required fields if missing
     for col in ["Media Number", "Description", "Fee", "Currency", "Your Share (%)", "Your Share"]:
         if col not in df.columns:
             df[col] = ""
@@ -55,19 +62,16 @@ def parse_getty_csv(csv_file, with_keywords=False):
     df["Media Number"] = df["Media Number"].astype(str)
     df["Agency"] = "Getty/iStock"
 
-    # Clean numeric values
     df["Fee"] = df["Fee"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
     df["Your Share (%)"] = df["Your Share (%)"].astype(str).str.extract(r"([0-9.]+)").astype(float)
     df["Your Share"] = df["Your Share"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
 
-    # Safe thumbnails/links
     df["Media Link"] = df["Media Number"].apply(
         lambda x: f"https://www.istockphoto.com/photo/gm{str(x)}" if str(x).isdigit() else "")
     df["Thumbnail"] = df["Media Number"].apply(
         lambda x: f"<a href='https://www.istockphoto.com/photo/gm{str(x)}' target='_blank'><img src='https://media.gettyimages.com/photos/{str(x)}' width='100'/></a>"
         if str(x).isdigit() else "")
 
-    # Fill remaining NUR-style structure
     df["Filename"] = ""
     df["Original Filename"] = ""
     df["Customer"] = ""
