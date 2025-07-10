@@ -1,6 +1,6 @@
 # 📊 Sales Report Parser
 
-A lightweight Streamlit app that processes PDF sales reports (NurPhoto, SIPA, Getty/iStock) and outputs cleaned CSVs for Google Sheets ingestion.
+A lightweight Streamlit app that processes PDF sales reports and outputs cleaned CSVs for Google Sheets ingestion.
 
 ## Features
 
