@@ -1,53 +1,54 @@
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
+import re
 
-def fetch_istock_keywords(asset_id):
-    url = f"https://www.istockphoto.com/photo/gm{asset_id}"
-    try:
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, "html.parser")
-            meta = soup.find("meta", {"name": "keywords"})
-            return meta["content"] if meta else ""
-    except Exception:
-        return ""
+def parse_getty_csv(csv_file, with_keywords=False):
+    df = pd.read_csv(csv_file)
 
-def parse_getty_csv(csv_bytes, with_keywords=False):
-    # Peek to detect delimiter
-    sample = csv_bytes.read(1024).decode(errors='ignore')
-    sep = '\t' if '\t' in sample else ','
+    # Normalize/rename expected Getty/iStock fields
+    df = df.rename(columns={
+        'Asset ID': 'Media Number',
+        'Title': 'Description',
+        'Download Date': 'Sale Date',
+        'License Fee': 'Fee',
+        'Currency': 'Currency',
+        'Royalty Rate': 'Your Share (%)',
+        'Royalty Amount': 'Your Share'
+    })
 
-    csv_bytes.seek(0)
-    df = pd.read_csv(csv_bytes, sep=sep)
-    records = []
+    df['Media Number'] = df['Media Number'].astype(str)
+    df['Agency'] = 'Getty/iStock'
 
-    for _, row in df.iterrows():
-        try:
-            fee = float(str(row.get("License Fee in USD", 0)).replace("$", "").strip() or 0)
-            royalty = float(str(row.get("Gross Royalty in USD", 0)).replace("$", "").strip() or 0)
-            asset_id = str(row.get("Asset Number", "")).strip()
-            description = str(row.get("Asset Description", "")).strip()
-            sale_date = str(row.get("Sales Date", row.get("Invoice Date", ""))).strip()
-            keywords = fetch_istock_keywords(asset_id) if with_keywords else ""
+    # Media Link and Thumbnail
+    df['Media Link'] = df['Media Number'].apply(
+        lambda x: f"https://www.istockphoto.com/photo/gm{x}" if x.isnumeric() else "")
+    df['Thumbnail'] = df['Media Number'].apply(
+        lambda x: f"<a href='https://www.istockphoto.com/photo/gm{x}' target='_blank'><img src='https://media.gettyimages.com/photos/{x}' width='100'/></a>"
+        if x.isnumeric() else "")
 
-            data = {
-                "Media Number": asset_id,
-                "Description": description,
-                "Sale Date": sale_date,
-                "Fee": fee,
-                "Currency": "USD",
-                "Your Share (%)": round((royalty / fee) * 100, 2) if fee else 0,
-                "Your Share": royalty,
-                "Agency": "Getty/iStock",
-                "Media Link": f"https://www.istockphoto.com/photo/gm{asset_id}",
-                "Thumbnail": f"<img src='https://www.istockphoto.com/photo/gm{asset_id}' width='100'/>",
-                "Slug?": False,
-                "Keywords": keywords
-            }
+    # Required Nur-style columns
+    df['Filename'] = ""
+    df['Original Filename'] = ""
+    df['Customer'] = ""
+    df['Credit'] = ""
+    df['Slug?'] = False
 
-            records.append(data)
-        except Exception:
-            continue
+    # Ensure Fee and Royalty are floats
+    df['Fee'] = df['Fee'].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
+    df['Your Share (%)'] = df['Your Share (%)'].astype(str).str.extract(r"([0-9.]+)").astype(float)
+    df['Your Share'] = df['Your Share'].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
 
-    return pd.DataFrame(records)
+    # Add placeholder if Keywords enabled
+    if with_keywords:
+        df['Keywords'] = df.get('Keywords', '')
+
+    # Final column order (Nur standard)
+    final_columns = [
+        'Thumbnail', 'Media Number', 'Filename', 'Original Filename', 'Customer', 'Credit',
+        'Description', 'Fee', 'Currency', 'Your Share (%)', 'Your Share',
+        'Agency', 'Media Link', 'Slug?'
+    ]
+    if with_keywords:
+        final_columns.append('Keywords')
+
+    df = df[final_columns]
+    return df
