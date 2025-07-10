@@ -1,9 +1,9 @@
 # utils/parsers.py
 
-import pandas as pd  # ✅ Add this line
+import pandas as pd  # ✅ REQUIRED or you'll get NameError
 
 def parse_pdf(pdf_bytes, agency):
-    # This is a dummy dataset for testing the pipeline
+    # Dummy fallback data until real parsing is implemented
     data = {
         "Media Number": ["123456"],
         "Filename": ["example.jpg"],
