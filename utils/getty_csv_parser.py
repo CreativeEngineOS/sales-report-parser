@@ -16,57 +16,27 @@ def parse_getty_csv(csv_file, with_keywords=False):
 
         sample = text[:2048]
         delimiter = "\t" if "\t" in sample else csv.Sniffer().sniff(sample).delimiter
-
         df = pd.read_csv(io.StringIO(text), delimiter=delimiter)
-
-        # Safely deduplicate column names
-        seen = {}
-        new_cols = []
-        for col in df.columns:
-            if col not in seen:
-                seen[col] = 1
-                new_cols.append(col)
-            else:
-                seen[col] += 1
-                new_cols.append(f"{col}_{seen[col]}")
-        df.columns = new_cols
 
     except Exception as e:
         raise ValueError(f"CSV parsing failed: {str(e)}")
 
     df.columns = [c.strip() for c in df.columns]
-    raw_cols = list(df.columns)
-
-    # Check for duplicate columns
-    if pd.Series(df.columns).duplicated().any():
-        print("Warning: Duplicate columns detected and will be renamed.")
-
-    # Check for duplicate index labels and force reset
-    df = df.reset_index(drop=True)
-    if not df.index.is_unique:
-        print("Critical error: DataFrame index is still not unique after reset. Forcing unique index.")
-        df.index = pd.RangeIndex(len(df))
-
-    # Optionally drop duplicate rows based on Media Number
-    if "Media Number" in df.columns and df["Media Number"].duplicated().any():
-        print("Warning: Duplicate Media Number values detected. Keeping first occurrence.")
-        df = df.drop_duplicates(subset=["Media Number"], keep="first").reset_index(drop=True)
-        df.index = pd.RangeIndex(len(df))
 
     col_map = {}
-    for col in raw_cols:
+    for col in df.columns:
         col_l = col.lower()
         if "asset number" in col_l or "asset id" in col_l:
             col_map[col] = "Media Number"
         elif "description" in col_l or "title" in col_l:
             col_map[col] = "Description"
-        elif col_l == "fee":
+        elif "fee" == col_l:
             col_map[col] = "Fee"
         elif "gross royalty" in col_l:
             col_map[col] = "Your Share"
         elif "royalty rate" in col_l or "your share (%)" in col_l:
             col_map[col] = "Your Share (%)"
-        elif col_l == "currency" and "Currency" not in col_map.values():
+        elif "currency" == col_l:
             col_map[col] = "Currency"
 
     df = df.rename(columns=col_map)
@@ -82,15 +52,14 @@ def parse_getty_csv(csv_file, with_keywords=False):
     df["Your Share (%)"] = df["Your Share (%)"].astype(str).str.extract(r"([0-9.]+)").astype(float)
     df["Your Share"] = df["Your Share"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
 
-    # Safe assignment using numpy to avoid index issues
-    df["Media Link"] = pd.Series(
-        [f"https://www.istockphoto.com/photo/gm{str(x)}" if str(x).isdigit() else "" for x in df["Media Number"].values],
-        index=df.index
-    )
-    df["Thumbnail"] = pd.Series(
-        [f"<a href='https://www.istockphoto.com/photo/gm{str(x)}' target='_blank'><img src='https://media.gettyimages.com/photos/{str(x)}' width='100'/></a>" if str(x).isdigit() else "" for x in df["Media Number"].values],
-        index=df.index
-    )
+    # Reset index to avoid any possible duplicate index issues
+    df = df.reset_index(drop=True)
+
+    df["Media Link"] = df["Media Number"].apply(
+        lambda x: f"https://www.istockphoto.com/photo/gm{str(x)}" if str(x).isdigit() else "")
+    df["Thumbnail"] = df["Media Number"].apply(
+        lambda x: f"<a href='https://www.istockphoto.com/photo/gm{str(x)}' target='_blank'><img src='https://media.gettyimages.com/photos/{str(x)}' width='100'/></a>"
+        if str(x).isdigit() else "")
 
     df["Filename"] = ""
     df["Original Filename"] = ""
@@ -100,7 +69,8 @@ def parse_getty_csv(csv_file, with_keywords=False):
 
     nur_cols = [
         "Thumbnail", "Media Number", "Filename", "Original Filename", "Customer", "Credit",
-        "Description", "Fee", "Currency", "Your Share (%)", "Your Share", "Agency", "Media Link", "Slug?"
+        "Description", "Fee", "Currency", "Your Share (%)", "Your Share",
+        "Agency", "Media Link", "Slug?"
     ]
     extra_cols = [c for c in df.columns if c not in nur_cols]
     df = df[nur_cols + extra_cols]
