@@ -1,19 +1,22 @@
-# 📊 Sales Report Parser
+# Sales Report Parser
 
-A lightweight Streamlit app that processes PDF sales reports and outputs cleaned CSVs for Google Sheets ingestion.
+## 🛠 The Swiss Army Knife for Sales Report Parsing
 
-## Features
+Unlock effortless data magic with a tool designed to handle a wide variety of industry-standard sales report formats—whether you’re working with spreadsheets, web archives, or custom statements. Instantly transform complex files into clean, actionable data with just a few clicks.
 
-- Upload and parse royalty statements
-- Normalize across agencies
-- Enrich data with media links, thumbnail previews, internal slug detection
-- Export to CSV
+---
 
-## To Run Locally
+### ✨ Key Features
 
-```bash
-python3 -m venv venv
-source venv/bin/activate        # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-streamlit run app.py
-```
+- **Universal Compatibility:** Seamlessly process multiple report styles and formats—no manual wrangling required.
+- **Lightning-Fast Results:** Upload, parse, and export your data in seconds, freeing up time for what matters most.
+- **Intuitive Interface:** No technical experience needed; just drag, drop, and let the magic happen.
+- **Built for Flexibility:** Whether you’re managing creative assets or editorial content, our tool adapts to your workflow.
+- **Safe, Secure, Inhouse:** Designed for internal use only. No external dependencies or third-party claims—your data stays yours.
+
+---
+
+> **Disclaimer:**  
+> This software is intended for inhouse use. No guarantees or claims are made regarding suitability for external, commercial, or unintended applications. Always verify results before making business decisions.
+
+---
