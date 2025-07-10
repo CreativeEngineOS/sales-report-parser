@@ -2,7 +2,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 def parse_nurphoto_mhtml(mhtml_bytes):
-    soup = BeautifulSoup(mhtml_bytes, "lxml")
+    soup = BeautifulSoup(mhtml_bytes, "html.parser")
     text = soup.get_text(separator="\n", strip=True)
     entries = text.split("Media Number:")[1:]
 
