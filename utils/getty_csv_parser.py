@@ -15,10 +15,12 @@ def parse_getty_csv(csv_file, with_keywords=False):
         else:
             text = content
 
-        # Use csv.Sniffer to detect delimiter
         sample = text[:2048]
-        dialect = csv.Sniffer().sniff(sample)
-        delimiter = dialect.delimiter
+        if "\t" in sample:
+            delimiter = "\t"
+        else:
+            dialect = csv.Sniffer().sniff(sample)
+            delimiter = dialect.delimiter
 
         df = pd.read_csv(io.StringIO(text), delimiter=delimiter)
 
@@ -26,21 +28,33 @@ def parse_getty_csv(csv_file, with_keywords=False):
         raise ValueError(f"CSV parsing failed: {str(e)}")
 
     # Debug fallback: print columns for inspection if something breaks
-    expected_raw = ['Asset ID', 'Title', 'Download Date', 'License Fee', 'Currency', 'Royalty Rate', 'Royalty Amount']
-    missing = [col for col in expected_raw if col not in df.columns]
-    if missing:
-        raise KeyError(f"Missing expected columns in iStock/CSV: {missing}. Found columns: {list(df.columns)}")
+    raw_cols = list(df.columns)
 
-    # Normalize/rename expected Getty/iStock fields
-    df = df.rename(columns={
-        'Asset ID': 'Media Number',
-        'Title': 'Description',
-        'Download Date': 'Sale Date',
-        'License Fee': 'Fee',
-        'Currency': 'Currency',
-        'Royalty Rate': 'Your Share (%)',
-        'Royalty Amount': 'Your Share'
-    })
+    # Flexible renaming logic
+    col_map = {}
+    for col in raw_cols:
+        col_l = col.lower()
+        if "asset" in col_l and "id" in col_l:
+            col_map[col] = "Media Number"
+        elif "title" in col_l or "description" in col_l:
+            col_map[col] = "Description"
+        elif "download" in col_l or "sale date" in col_l:
+            col_map[col] = "Sale Date"
+        elif "license fee" in col_l or "fee" in col_l:
+            col_map[col] = "Fee"
+        elif "currency" in col_l:
+            col_map[col] = "Currency"
+        elif "royalty rate" in col_l or "your share (%)" in col_l:
+            col_map[col] = "Your Share (%)"
+        elif "royalty amount" in col_l or "your share (€" in col_l:
+            col_map[col] = "Your Share"
+
+    df = df.rename(columns=col_map)
+
+    required_fields = ["Media Number", "Description", "Fee", "Currency", "Your Share (%)", "Your Share"]
+    missing = [field for field in required_fields if field not in df.columns]
+    if missing:
+        raise KeyError(f"Missing expected columns after renaming: {missing}. Found: {list(df.columns)}")
 
     df['Media Number'] = df['Media Number'].astype(str)
     df['Agency'] = 'Getty/iStock'
@@ -68,7 +82,7 @@ def parse_getty_csv(csv_file, with_keywords=False):
     if with_keywords:
         df['Keywords'] = df.get('Keywords', '')
 
-    # Final column order (Nur standard)
+    # Final column order (NurPhoto standard)
     final_columns = [
         'Thumbnail', 'Media Number', 'Filename', 'Original Filename', 'Customer', 'Credit',
         'Description', 'Fee', 'Currency', 'Your Share (%)', 'Your Share',
