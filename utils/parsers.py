@@ -26,9 +26,9 @@ def detect_agency_from_text(pdf_bytes):
     else:
         return "Unknown"
 
-def parse_pdf(pdf_bytes, agency, with_keywords=False):
+def parse_pdf(pdf_bytes, agency, with_keywords=False, filename=None):
     if agency == "NurPhoto":
-        if pdf_bytes[:1000].decode(errors="ignore").lower().startswith("content-type: multipart"):
+        if filename and filename.lower().endswith(".mhtml"):
             return parse_nurphoto_mhtml(pdf_bytes), "NurPhoto"
         else:
             return parse_nurphoto_pdf(pdf_bytes), "NurPhoto"
