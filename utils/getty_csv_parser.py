@@ -25,6 +25,12 @@ def parse_getty_csv(csv_file, with_keywords=False):
     except Exception as e:
         raise ValueError(f"CSV parsing failed: {str(e)}")
 
+    # Debug fallback: print columns for inspection if something breaks
+    expected_raw = ['Asset ID', 'Title', 'Download Date', 'License Fee', 'Currency', 'Royalty Rate', 'Royalty Amount']
+    missing = [col for col in expected_raw if col not in df.columns]
+    if missing:
+        raise KeyError(f"Missing expected columns in iStock/CSV: {missing}. Found columns: {list(df.columns)}")
+
     # Normalize/rename expected Getty/iStock fields
     df = df.rename(columns={
         'Asset ID': 'Media Number',
