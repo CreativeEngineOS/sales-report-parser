@@ -14,7 +14,12 @@ def fetch_istock_keywords(asset_id):
         return ""
 
 def parse_getty_csv(csv_bytes, with_keywords=False):
-    df = pd.read_csv(csv_bytes)
+    # Peek to detect delimiter
+    sample = csv_bytes.read(1024).decode(errors='ignore')
+    sep = '\t' if '\t' in sample else ','
+
+    csv_bytes.seek(0)
+    df = pd.read_csv(csv_bytes, sep=sep)
     records = []
 
     for _, row in df.iterrows():
@@ -23,7 +28,7 @@ def parse_getty_csv(csv_bytes, with_keywords=False):
             royalty = float(str(row.get("Gross Royalty in USD", 0)).replace("$", "").strip() or 0)
             asset_id = str(row.get("Asset Number", "")).strip()
             description = str(row.get("Asset Description", "")).strip()
-            sale_date = str(row.get("Sales Date", "")).strip()
+            sale_date = str(row.get("Sales Date", row.get("Invoice Date", ""))).strip()
             keywords = fetch_istock_keywords(asset_id) if with_keywords else ""
 
             data = {
