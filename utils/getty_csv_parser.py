@@ -56,28 +56,28 @@ def parse_getty_csv(csv_file, with_keywords=False):
     df["Your Share (%)"] = df["Your Share (%)"].astype(str).str.extract(r"([0-9.]+)").astype(float)
     df["Your Share"] = df["Your Share"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
 
-    # Thumbnails and links
+    # Thumbnails and links (safe check for numeric string)
     df["Media Link"] = df["Media Number"].apply(
-        lambda x: f"https://www.istockphoto.com/photo/gm{x}" if x.isnumeric() else "")
+        lambda x: f"https://www.istockphoto.com/photo/gm{str(x)}" if str(x).isdigit() else "")
     df["Thumbnail"] = df["Media Number"].apply(
-        lambda x: f"<a href='https://www.istockphoto.com/photo/gm{x}' target='_blank'><img src='https://media.gettyimages.com/photos/{x}' width='100'/></a>"
-        if x.isnumeric() else "")
+        lambda x: f"<a href='https://www.istockphoto.com/photo/gm{str(x)}' target='_blank'><img src='https://media.gettyimages.com/photos/{str(x)}' width='100'/></a>"
+        if str(x).isdigit() else "")
 
-    # Add missing fields from Nur
+    # Add missing NurPhoto-style columns
     df["Filename"] = ""
     df["Original Filename"] = ""
     df["Customer"] = ""
     df["Credit"] = ""
     df["Slug?"] = False
 
-    # NUR-style structure
+    # Output column order
     nur_cols = [
         "Thumbnail", "Media Number", "Filename", "Original Filename", "Customer", "Credit",
         "Description", "Fee", "Currency", "Your Share (%)", "Your Share",
         "Agency", "Media Link", "Slug?"
     ]
 
-    # Append any extra columns to the end
+    # Preserve extra metadata columns
     extra_cols = [c for c in df.columns if c not in nur_cols]
     df = df[nur_cols + extra_cols]
 
