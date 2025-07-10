@@ -7,10 +7,8 @@ def parse_nurphoto_mhtml(mhtml_bytes):
     td_elements = soup.find_all("td")
 
     records = []
-    current = {}
     record_blocks = []
 
-    # Step 1: group into blocks by "Media Number:"
     block = []
     for td in td_elements:
         if td.get_text(strip=True) == "Media Number:" and block:
@@ -20,7 +18,6 @@ def parse_nurphoto_mhtml(mhtml_bytes):
     if block:
         record_blocks.append(block)
 
-    # Step 2: parse each block independently
     def extract_value(block, label):
         for idx, td in enumerate(block):
             if td.get_text(strip=True) == label:
@@ -38,8 +35,11 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         description = extract_value(block, "Description:")
 
         fee_val = extract_value(block, "Fee:")
-        fee_match = re.search(r"([0-9]{1,3}[,.]?[0-9]{0,2})", fee_val)
-        fee_clean = float(fee_match.group(1).replace(",", ".")) if fee_match else 0.0
+        fee_val_clean = re.sub(r"[^\d,\.]", "", fee_val)
+        try:
+            fee_clean = float(fee_val_clean.replace(",", "."))
+        except:
+            fee_clean = 0.0
 
         share_pct = extract_value(block, "Your share (%):")
         share_val = extract_value(block, "Your share (€):")
