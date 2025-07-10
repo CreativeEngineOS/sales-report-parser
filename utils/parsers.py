@@ -25,14 +25,14 @@ def detect_agency_from_text(pdf_bytes):
     else:
         return "Unknown"
 
-def parse_pdf(pdf_bytes, agency):
+def parse_pdf(pdf_bytes, agency, with_keywords=False):
     if agency == "NurPhoto":
         return parse_nurphoto_pdf(pdf_bytes), "NurPhoto"
 
     elif agency == "Getty/iStock":
         # Detect if it's a CSV by checking for commas or PK (ZIP signature)
         if pdf_bytes[:4] == b'PK\x03\x04' or b',' in pdf_bytes[:1000]:
-            return parse_getty_csv(io.BytesIO(pdf_bytes)), "Getty/iStock"
+            return parse_getty_csv(io.BytesIO(pdf_bytes), with_keywords=with_keywords), "Getty/iStock"
         else:
             return parse_getty_pdf(pdf_bytes), "Getty/iStock"
 
