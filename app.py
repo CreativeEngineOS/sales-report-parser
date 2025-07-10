@@ -6,7 +6,7 @@ from utils.parsers import parse_pdf, detect_agency_from_text
 st.set_page_config(page_title="Sales Report Parser", layout="wide")
 
 st.title("Sales Report Parser")
-st.write("Upload your Getty/iStock, Nurphoto, or EditorialFootage sales report file (CSV, TXT, MHTML supported).")
+st.write("Upload your sales report file (CSV, TXT, or MHTML supported).")
 
 uploaded_file = st.file_uploader(
     "Upload sales report file (CSV, TXT, MHTML)", 
