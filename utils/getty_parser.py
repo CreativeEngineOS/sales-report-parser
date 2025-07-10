@@ -1,26 +1,30 @@
 import io
 import pdfplumber
 import pandas as pd
+import streamlit as st
 
 def parse_getty_pdf(pdf_bytes):
     rows = []
+    debug_output = []
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        with open("debug_getty_table.txt", "w", encoding="utf-8") as dbg:
-            for page in pdf.pages:
-                table = page.extract_table()
-                if table:
-                    dbg.write(f"--- Page {page.page_number} ---\n")
-                    for row in table:
-                        dbg.write(str(row) + "\n")
-                    dbg.write("\n")
+        for page_num, page in enumerate(pdf.pages, 1):
+            table = page.extract_table()
+            if table:
+                debug_output.append(f"--- Page {page_num} ---")
+                for row in table:
+                    debug_output.append(str(row))
+                debug_output.append("")
 
-                    headers = [h.strip() if h else f"col{i}" for i, h in enumerate(table[0])]
-                    for row in table[1:]:
-                        if len(row) < len(headers):
-                            continue  # skip malformed rows
-                        record = dict(zip(headers, row))
-                        rows.append(record)
+                headers = [h.strip() if h else f"col{i}" for i, h in enumerate(table[0])]
+                for row in table[1:]:
+                    if len(row) < len(headers):
+                        continue  # skip malformed rows
+                    record = dict(zip(headers, row))
+                    rows.append(record)
+
+    if debug_output:
+        st.expander("📄 Raw Getty Table Debug").write("\n".join(debug_output))
 
     records = []
 
