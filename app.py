@@ -1,43 +1,61 @@
 import streamlit as st
-import pandas as pd
-from utils.parsers import parse_pdf, detect_agency_from_text
+import io
 
-st.set_page_config(page_title="Sales Report Extractor", layout="wide")
-st.title("📊 Sales Report Parser & Formatter")
+from utils.getty_statement_parser import parse_getty_statement_csv
+from utils.getty_csv_parser import parse_getty_csv  # Keep for legacy support
+# from utils.parsers import detect_agency_from_text  # Uncomment if needed for agency auto-detection
 
-include_keywords = st.checkbox("🔑 Fetch Keywords from iStock", value=False)
+st.set_page_config(page_title="Sales Report Parser", layout="wide")
 
-uploaded_file = st.file_uploader("Upload a Sales Report (PDF, CSV, MHTML, or TXT)", type=["pdf", "csv", "mhtml", "txt"])
+st.title("Sales Report Parser")
+st.write("Upload your Getty/iStock statement or legacy CSV report.")
 
-if uploaded_file:
-    pdf_bytes = uploaded_file.read()
-    file_type = uploaded_file.type
+uploaded_file = st.file_uploader("Upload CSV file", type=["csv", "txt"])
+file_type = None
+df = None
+parsed_agency = None
 
-    with st.spinner("Detecting agency and processing file..."):
-        if file_type in ["text/csv", "text/plain"] or uploaded_file.name.endswith(".txt"):
-            agency = "Getty/iStock"
-        elif uploaded_file.name.lower().endswith(".mhtml"):
-            agency = "NurPhoto"
+if uploaded_file is not None:
+    # Detect file type - here we use filename heuristic, adapt if needed!
+    filename = uploaded_file.name.lower()
+    if "statement" in filename or "dm-" in filename:
+        file_type = "statement"
+    else:
+        file_type = "getty_csv"
+
+    try:
+        if file_type == "statement":
+            df, parsed_agency = parse_getty_statement_csv(uploaded_file)
         else:
-            agency = detect_agency_from_text(pdf_bytes)
-
-        df, parsed_agency = parse_pdf(pdf_bytes, agency, with_keywords=include_keywords, filename=uploaded_file.name)
+            # For legacy CSV format
+            df, parsed_agency = parse_getty_csv(uploaded_file)
 
         if df is not None and not df.empty:
-            st.success(f"Parsed {parsed_agency} report with {len(df)} records")
+            st.success(f"Parsed {parsed_agency} report with {len(df)} rows.")
 
-            if "Thumbnail" in df.columns:
-                st.write("\n**Thumbnail Preview Table**")
-                st.write(df.to_html(escape=False, index=False), unsafe_allow_html=True)
-            else:
-                st.dataframe(df)
+            # Display preview
+            st.dataframe(df.head(100), use_container_width=True)
 
-            csv = df.to_csv(index=False).encode("utf-8")
+            # Download button (CSV)
+            csv = df.to_csv(index=False)
             st.download_button(
-                label="📥 Download CSV",
+                label="Download Parsed CSV",
                 data=csv,
-                file_name=f"{parsed_agency}_report_parsed.csv",
+                file_name="parsed_sales_report.csv",
                 mime="text/csv"
             )
+
+            # Optionally show thumbnails
+            if "Thumbnail" in df.columns:
+                st.write("Thumbnails Preview (first 10 rows):")
+                for thumbnail_html in df["Thumbnail"].head(10):
+                    st.markdown(thumbnail_html, unsafe_allow_html=True)
+
         else:
-            st.warning("No usable data found. Please verify the file format.")
+            st.warning("No data found in the uploaded file.")
+
+    except Exception as e:
+        st.error(f"Error parsing file: {str(e)}")
+
+else:
+    st.info("Please upload your Getty/iStock statement CSV or legacy report.")
