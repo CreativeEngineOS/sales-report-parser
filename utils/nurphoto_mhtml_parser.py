@@ -34,10 +34,10 @@ def parse_nurphoto_mhtml(mhtml_bytes):
                 "Customer": "",
                 "Credit": "",
                 "Description": "",
-                "Fee": None,
+                "Fee": 0.0,
                 "Currency": "EUR",
-                "Your Share (%)": None,
-                "Your Share": None,
+                "Your Share (%)": 0,
+                "Your Share": 0.0,
                 "Agency": "NurPhoto",
                 "Media Link": "",
                 "Thumbnail": "",
@@ -55,26 +55,28 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         elif "description" in label:
             current["Description"] = value
         elif "fee" in label and "share" not in label:
-            try:
-                current["Fee"] = float(re.sub(r"[^\d.,]", "", value).replace(",", "."))
-            except:
-                current["Fee"] = 0.0
+            fee_match = re.search(r"€\s?([\d,.]+)", value)
+            if fee_match:
+                try:
+                    current["Fee"] = float(fee_match.group(1).replace(",", "."))
+                except:
+                    current["Fee"] = 0.0
         elif "your share (%)" in label:
             try:
                 current["Your Share (%)"] = float(re.sub(r"[^\d.]", "", value))
             except:
                 current["Your Share (%)"] = 0.0
-        elif "your share (€" in label:
-            try:
-                current["Your Share"] = float(re.sub(r"[^\d.,]", "", value).replace(",", "."))
-            except:
-                current["Your Share"] = 0.0
 
     if current and "Media Number" in current:
         media_id = current["Media Number"]
         current["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
         current["Thumbnail"] = f"<a href='{current['Media Link']}' target='_blank'><img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/></a>"
         records.append(current)
+
+    # After building all records, recalculate share value
+    for rec in records:
+        if rec["Fee"] and rec["Your Share (%)"]:
+            rec["Your Share"] = round((rec["Fee"] * rec["Your Share (%)"] / 100), 2)
 
     df = pd.DataFrame(records)
 
