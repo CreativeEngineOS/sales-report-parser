@@ -55,15 +55,13 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         elif "description" in label:
             current["Description"] = value
         elif "fee" in label and "share" not in label:
-            euro_pos = value.find("€")
-            if euro_pos != -1:
-                fee_candidate = value[euro_pos + 1:].strip()
-                fee_cleaned = re.match(r"[0-9]{1,3}[,.]?[0-9]{0,2}", fee_candidate)
-                if fee_cleaned:
-                    try:
-                        current["Fee"] = float(fee_cleaned.group(0).replace(",", "."))
-                    except:
-                        current["Fee"] = 0.0
+            # Find '€' and extract a value up to 10 spaces later
+            match = re.search(r"€\s{0,10}([0-9]{1,3}[,.]?[0-9]{0,2})", value)
+            if match:
+                try:
+                    current["Fee"] = float(match.group(1).replace(",", "."))
+                except:
+                    current["Fee"] = 0.0
         elif "your share (%)" in label:
             try:
                 pct_val = re.sub(r"[^\d.]", "", value)
