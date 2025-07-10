@@ -11,6 +11,13 @@ def parse_nurphoto_pdf(pdf_bytes):
 
     entries = text.split("Media Number:")[1:]
 
+    # 🔍 DEBUG: Save a sample of what was parsed to check why lines are being skipped
+    with open("debug_nurphoto_lines.txt", "w", encoding="utf-8") as debug_out:
+        for i, entry in enumerate(entries):
+            debug_out.write(f"--- Entry {i+1} ---\n")
+            debug_out.write(entry)
+            debug_out.write("\n\n")
+
     records = []
 
     for entry in entries:
