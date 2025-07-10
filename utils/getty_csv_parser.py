@@ -4,92 +4,81 @@ import io
 import re
 
 def parse_getty_csv(csv_file, with_keywords=False):
-    # Try reading with auto-detection of delimiter and encoding
     try:
         content = csv_file.read()
         if isinstance(content, bytes):
             try:
                 text = content.decode("utf-8")
             except UnicodeDecodeError:
-                text = content.decode("utf-16")  # fallback if utf-8 fails
+                text = content.decode("utf-16")
         else:
             text = content
 
         sample = text[:2048]
-        if "\t" in sample:
-            delimiter = "\t"
-        else:
-            dialect = csv.Sniffer().sniff(sample)
-            delimiter = dialect.delimiter
-
+        delimiter = "\t" if "\t" in sample else csv.Sniffer().sniff(sample).delimiter
         df = pd.read_csv(io.StringIO(text), delimiter=delimiter)
 
     except Exception as e:
         raise ValueError(f"CSV parsing failed: {str(e)}")
 
-    # Debug fallback: print columns for inspection if something breaks
+    df.columns = [c.strip() for c in df.columns]
     raw_cols = list(df.columns)
 
-    # Flexible renaming logic
     col_map = {}
     for col in raw_cols:
         col_l = col.lower()
-        if "asset" in col_l and "id" in col_l:
+        if "asset number" in col_l or "asset id" in col_l:
             col_map[col] = "Media Number"
-        elif "title" in col_l or "description" in col_l:
+        elif "description" in col_l or "title" in col_l:
             col_map[col] = "Description"
-        elif "download" in col_l or "sale date" in col_l:
-            col_map[col] = "Sale Date"
-        elif "license fee" in col_l or "fee" in col_l:
+        elif "fee" == col_l:
             col_map[col] = "Fee"
-        elif "currency" in col_l:
-            col_map[col] = "Currency"
+        elif "gross royalty" in col_l:
+            col_map[col] = "Your Share"
         elif "royalty rate" in col_l or "your share (%)" in col_l:
             col_map[col] = "Your Share (%)"
-        elif "royalty amount" in col_l or "your share (€" in col_l:
-            col_map[col] = "Your Share"
+        elif "currency" in col_l:
+            col_map[col] = "Currency"
 
     df = df.rename(columns=col_map)
 
-    required_fields = ["Media Number", "Description", "Fee", "Currency", "Your Share (%)", "Your Share"]
-    missing = [field for field in required_fields if field not in df.columns]
-    if missing:
-        raise KeyError(f"Missing expected columns after renaming: {missing}. Found: {list(df.columns)}")
+    # Ensure required fields exist
+    required = ["Media Number", "Description", "Fee", "Currency", "Your Share (%)", "Your Share"]
+    for col in required:
+        if col not in df.columns:
+            df[col] = ""
 
-    df['Media Number'] = df['Media Number'].astype(str)
-    df['Agency'] = 'Getty/iStock'
+    df["Media Number"] = df["Media Number"].astype(str)
+    df["Agency"] = "Getty/iStock"
 
-    # Media Link and Thumbnail
-    df['Media Link'] = df['Media Number'].apply(
+    # Clean numbers
+    df["Fee"] = df["Fee"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
+    df["Your Share (%)"] = df["Your Share (%)"].astype(str).str.extract(r"([0-9.]+)").astype(float)
+    df["Your Share"] = df["Your Share"].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
+
+    # Thumbnails and links
+    df["Media Link"] = df["Media Number"].apply(
         lambda x: f"https://www.istockphoto.com/photo/gm{x}" if x.isnumeric() else "")
-    df['Thumbnail'] = df['Media Number'].apply(
+    df["Thumbnail"] = df["Media Number"].apply(
         lambda x: f"<a href='https://www.istockphoto.com/photo/gm{x}' target='_blank'><img src='https://media.gettyimages.com/photos/{x}' width='100'/></a>"
         if x.isnumeric() else "")
 
-    # Required Nur-style columns
-    df['Filename'] = ""
-    df['Original Filename'] = ""
-    df['Customer'] = ""
-    df['Credit'] = ""
-    df['Slug?'] = False
+    # Add missing fields from Nur
+    df["Filename"] = ""
+    df["Original Filename"] = ""
+    df["Customer"] = ""
+    df["Credit"] = ""
+    df["Slug?"] = False
 
-    # Ensure Fee and Royalty are floats
-    df['Fee'] = df['Fee'].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
-    df['Your Share (%)'] = df['Your Share (%)'].astype(str).str.extract(r"([0-9.]+)").astype(float)
-    df['Your Share'] = df['Your Share'].astype(str).str.replace(",", ".").str.extract(r"([0-9.]+)").astype(float)
-
-    # Add placeholder if Keywords enabled
-    if with_keywords:
-        df['Keywords'] = df.get('Keywords', '')
-
-    # Final column order (NurPhoto standard)
-    final_columns = [
-        'Thumbnail', 'Media Number', 'Filename', 'Original Filename', 'Customer', 'Credit',
-        'Description', 'Fee', 'Currency', 'Your Share (%)', 'Your Share',
-        'Agency', 'Media Link', 'Slug?'
+    # NUR-style structure
+    nur_cols = [
+        "Thumbnail", "Media Number", "Filename", "Original Filename", "Customer", "Credit",
+        "Description", "Fee", "Currency", "Your Share (%)", "Your Share",
+        "Agency", "Media Link", "Slug?"
     ]
-    if with_keywords:
-        final_columns.append('Keywords')
 
-    df = df[final_columns]
+    # Append any extra columns to the end
+    extra_cols = [c for c in df.columns if c not in nur_cols]
+    df = df[nur_cols + extra_cols]
+
     return df
