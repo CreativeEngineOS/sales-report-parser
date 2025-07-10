@@ -35,7 +35,7 @@ def parse_pdf(pdf_bytes, agency, with_keywords=False, filename=None):
 
     elif agency == "Getty/iStock":
         # Detect if it's a CSV by checking for commas or PK (ZIP signature)
-        if pdf_bytes[:4] == b'PK\x03\x04' or b',' in pdf_bytes[:1000]:
+        if pdf_bytes[:4] == b'PK\x03\x04' or b',' in pdf_bytes[:1000] or b'\t' in pdf_bytes[:1000]:
             return parse_getty_csv(io.BytesIO(pdf_bytes), with_keywords=with_keywords), "Getty/iStock"
         else:
             return parse_getty_pdf(pdf_bytes), "Getty/iStock"
