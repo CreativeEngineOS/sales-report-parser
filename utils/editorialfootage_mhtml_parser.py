@@ -57,7 +57,7 @@ def parse_editorialfootage_mhtml(mhtml_bytes):
             share_val_float = round((fee_clean * share_pct_float / 100), 2)
 
         media_link = f"https://www.editorialfootage.com/video/{media_number}"
-        thumbnail = f"<a href='{media_link}' target='_blank'><img src='https://www.editorialfootage.com/video/{media_number}/picture/video' width='100'/></a>"
+        thumbnail = f"<a href='{media_link}' target='_blank'><img src='https://admin.editorialfootage.com/portal/thumbnail/{media_number}' width='100'/></a>"
 
         record = {
             "Media Number": media_number,
