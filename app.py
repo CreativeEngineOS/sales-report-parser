@@ -21,7 +21,7 @@ if uploaded_file:
         else:
             agency = detect_agency_from_text(pdf_bytes)
 
-        df, parsed_agency = parse_pdf(pdf_bytes, agency, with_keywords=include_keywords)
+        df, parsed_agency = parse_pdf(pdf_bytes, agency, with_keywords=include_keywords, filename=uploaded_file.name)
 
         if df is not None and not df.empty:
             st.success(f"Parsed {parsed_agency} report with {len(df)} records")
