@@ -35,9 +35,9 @@ def parse_nurphoto_mhtml(mhtml_bytes):
         description = extract_value(block, "Description:")
 
         fee_val = extract_value(block, "Fee:")
-        fee_val_clean = re.sub(r"[^\d,\.]", "", fee_val)
+        fee_match = re.search(r"€\s{0,10}([0-9]{1,3}[,.][0-9]{1,2})", fee_val)
         try:
-            fee_clean = float(fee_val_clean.replace(",", "."))
+            fee_clean = float(fee_match.group(1).replace(",", ".")) if fee_match else 0.0
         except:
             fee_clean = 0.0
 
