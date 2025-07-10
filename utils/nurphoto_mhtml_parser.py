@@ -3,77 +3,74 @@ from bs4 import BeautifulSoup
 
 def parse_nurphoto_mhtml(mhtml_bytes):
     soup = BeautifulSoup(mhtml_bytes, "html.parser")
-    entries = soup.find_all("b", string="Media Number:")
+    rows = soup.find_all("tr")
 
     records = []
+    current = {}
 
-    for entry in entries:
-        block = entry.find_parent("td").find_parent("tr") if entry.find_parent("td") else entry.find_parent()
-        text = block.get_text(separator="\n", strip=True)
+    for row in rows:
+        cells = row.find_all("td")
+        if len(cells) < 2:
+            continue
 
-        lines = text.split("\n")
-        data = {
-            "Media Number": "",
-            "Filename": "",
-            "Original Filename": "",
-            "Customer": "",
-            "Credit": "",
-            "Description": "",
-            "Fee": 0.0,
-            "Currency": "EUR",
-            "Your Share (%)": 0,
-            "Your Share": 0.0,
-            "Agency": "NurPhoto",
-            "Media Link": "",
-            "Thumbnail": "",
-            "Slug?": False
-        }
+        label = cells[0].get_text(strip=True).lower().replace("\xa0", "").rstrip(":").strip()
+        value = cells[1].get_text(strip=True)
 
-        for i, line in enumerate(lines):
-            label = line.lower().strip()
-            next_val = lines[i + 1].strip() if i + 1 < len(lines) else ""
+        if "media number" in label:
+            if current:  # flush previous
+                if "Media Number" in current:
+                    current["Media Link"] = f"https://www.nurphoto.com/photo/{current['Media Number']}"
+                    current["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{current['Media Number']}/picture/photo' width='100'/>"
+                records.append(current)
+            current = {
+                "Media Number": value,
+                "Filename": "",
+                "Original Filename": "",
+                "Customer": "",
+                "Credit": "",
+                "Description": "",
+                "Fee": 0.0,
+                "Currency": "EUR",
+                "Your Share (%)": 0,
+                "Your Share": 0.0,
+                "Agency": "NurPhoto",
+                "Media Link": "",
+                "Thumbnail": "",
+                "Slug?": False
+            }
+        elif "filename" == label and not current.get("Filename"):
+            current["Filename"] = value
+        elif "original filename" == label:
+            current["Original Filename"] = value
+        elif "customer" == label:
+            current["Customer"] = value
+        elif "credit" == label:
+            current["Credit"] = value
+        elif "description" == label:
+            current["Description"] = value
+        elif "fee" == label:
+            try:
+                current["Fee"] = float(value.replace("€", "").replace(",", "."))
+            except:
+                pass
+        elif "your share (%)" in label:
+            try:
+                current["Your Share (%)"] = int(value)
+            except:
+                pass
+        elif "your share (€" in label:
+            try:
+                current["Your Share"] = float(value.replace("€", "").replace(",", "."))
+            except:
+                pass
 
-            if "media number" in label:
-                data["Media Number"] = next_val
-            elif "filename" in label and not data["Filename"]:
-                data["Filename"] = next_val
-            elif "original filename" in label:
-                data["Original Filename"] = next_val
-            elif "customer" in label:
-                data["Customer"] = next_val
-            elif "credit" in label:
-                data["Credit"] = next_val
-            elif "description" in label:
-                data["Description"] = next_val
-            elif "fee" in label:
-                fee = next_val.replace("€", "").replace(",", ".").strip()
-                try:
-                    data["Fee"] = float(fee)
-                except:
-                    pass
-            elif "your share (%)" in label:
-                try:
-                    data["Your Share (%)"] = int(next_val)
-                except:
-                    pass
-            elif "your share (€" in label:
-                share = next_val.replace("€", "").replace(",", ".").strip()
-                try:
-                    data["Your Share"] = float(share)
-                except:
-                    pass
-
-        media_id = data["Media Number"]
-        if media_id:
-            data["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
-            data["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/>"
-
-        records.append(data)
+    if current and "Media Number" in current:
+        current["Media Link"] = f"https://www.nurphoto.com/photo/{current['Media Number']}"
+        current["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{current['Media Number']}/picture/photo' width='100'/>"
+        records.append(current)
 
     df = pd.DataFrame(records)
-
     if "Thumbnail" in df.columns:
         thumb_col = df.pop("Thumbnail")
         df.insert(0, "Thumbnail", thumb_col)
-
     return df
