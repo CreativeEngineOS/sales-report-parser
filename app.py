@@ -6,22 +6,20 @@ from utils.parsers import parse_pdf, detect_agency_from_text
 st.set_page_config(page_title="Sales Report Parser", layout="wide")
 
 st.title("Sales Report Parser")
-st.write("Upload your sales report file (CSV, TXT, or MHTML supported).")
+st.write("Upload your sales report file (CSV or MHTML supported).")
 
 uploaded_file = st.file_uploader(
-    "Upload sales report file (CSV, TXT, MHTML)", 
-    type=["csv", "txt", "mhtml"]
+    "Upload sales report file (CSV, MHTML)", 
+    type=["csv", "mhtml"]
 )
 
 df = None
 parsed_agency = None
 
 if uploaded_file is not None:
-    # Attempt to auto-detect agency from the file name and initial content
     filename = uploaded_file.name
     filename_lower = filename.lower()
 
-    # Read a small sample for agency detection
     sample_bytes = uploaded_file.read(2048)
     uploaded_file.seek(0)
     try:
@@ -29,12 +27,10 @@ if uploaded_file is not None:
     except Exception:
         sample_text = ""
 
-    # Try to auto-detect agency from filename and sample content
     agency = detect_agency_from_text(filename + " " + sample_text)
     if agency == "Unknown":
         st.warning("Could not auto-detect agency. Please check your file or contact support.")
 
-    # Use full file bytes for parsing (reset file pointer)
     file_bytes = uploaded_file.read()
     uploaded_file.seek(0)
 
@@ -42,7 +38,6 @@ if uploaded_file is not None:
         df, parsed_agency = parse_pdf(
             file_bytes,
             agency=agency,
-            with_keywords=False,
             filename=filename
         )
 
@@ -59,7 +54,6 @@ if uploaded_file is not None:
                 mime="text/csv"
             )
 
-            # Show thumbnails if present
             if "Thumbnail" in df.columns:
                 st.write("Thumbnails Preview (first 10 rows):")
                 for thumbnail_html in df["Thumbnail"].head(10):
@@ -72,4 +66,4 @@ if uploaded_file is not None:
         st.error(f"Error parsing file: {str(e)}")
 
 else:
-    st.info("Please upload your Getty/iStock, Nurphoto, or EditorialFootage sales report file (CSV, TXT, or MHTML).")
+    st.info("Please upload your Getty/iStock, Nurphoto, or EditorialFootage sales report file (CSV or MHTML).")
