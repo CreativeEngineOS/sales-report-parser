@@ -18,6 +18,8 @@ def parse_getty_pdf(pdf_bytes):
 
                 headers = [h.strip() if h else f"col{i}" for i, h in enumerate(table[0])]
                 for row in table[1:]:
+                    if not any(row):  # Skip empty rows
+                        continue
                     if len(row) < len(headers):
                         continue  # skip malformed rows
                     record = dict(zip(headers, row))
@@ -31,10 +33,20 @@ def parse_getty_pdf(pdf_bytes):
     for item in rows:
         try:
             # Normalize field keys to strip line breaks
-            item_normalized = {k.replace("\n", " ").strip(): v for k, v in item.items()}
+            item_normalized = {k.replace("\n", " ").strip(): v for k, v in item.items() if k}
 
-            fee_str = item_normalized.get("LicenseFee(in USD)(1)", item_normalized.get("LicenseFee", "0")).replace("$", "").strip()
-            royalty_str = item_normalized.get("Gross Royalty(in USD)", "0").replace("$", "").strip()
+            fee_str = (
+                item_normalized.get("LicenseFee(in USD)(1)") or
+                item_normalized.get("LicenseFee") or
+                item_normalized.get("License Fee") or
+                "0"
+            ).replace("$", "").strip()
+
+            royalty_str = (
+                item_normalized.get("Gross Royalty(in USD)") or
+                item_normalized.get("GrossRoyalty(in USD)") or
+                "0"
+            ).replace("$", "").strip()
 
             media_number = item_normalized.get("AssetNumber") or item_normalized.get("AlternateAsset Number") or ""
             description = item_normalized.get("Asset Description") or ""
