@@ -1,58 +1,30 @@
+```python name=utils/parsers.py
 import io
-import pandas as pd
-import fitz  # PyMuPDF for PDF text parsing
-from utils.nurphoto_parser import parse_nurphoto_pdf
-from utils.nurphoto_mhtml_parser import parse_nurphoto_mhtml
-from utils.editorialfootage_mhtml_parser import parse_editorialfootage_mhtml
-from utils.getty_parser import parse_getty_pdf
+
 from utils.getty_csv_parser import parse_getty_csv
-# from utils.sipa_parser import parse_sipa_pdf
-# from utils.alamy_parser import parse_alamy_pdf
-# from utils.adobe_parser import parse_adobe_pdf
+from utils.getty_statement_parser import parse_getty_statement_csv
+# from utils.nurphoto_parser import parse_nurphoto_csv  # Uncomment if supporting Nurphoto
 
-def detect_agency_from_text(pdf_bytes):
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    first_page_text = doc[0].get_text().lower()
-
-    if "nurphoto agency" in first_page_text:
-        return "NurPhoto"
-    elif "editorialfootage" in first_page_text:
-        return "EditorialFootage"
-    elif "getty" in first_page_text or "istock" in first_page_text:
+def detect_agency_from_text(text):
+    """Detect agency from text content. Expand logic as needed."""
+    if "iStock" in text or "Getty" in text:
         return "Getty/iStock"
-    elif "sipa" in first_page_text:
-        return "SIPA USA"
-    elif "alamy" in first_page_text:
-        return "Alamy"
-    elif "adobe" in first_page_text:
-        return "Adobe"
+    elif "Nurphoto" in text:
+        return "Nurphoto"
     else:
         return "Unknown"
 
-def parse_pdf(pdf_bytes, agency, with_keywords=False, filename=None):
-    if agency == "NurPhoto":
-        if filename and filename.lower().endswith(".mhtml"):
-            return parse_nurphoto_mhtml(pdf_bytes), "NurPhoto"
-        else:
-            return parse_nurphoto_pdf(pdf_bytes), "NurPhoto"
-
-    elif agency == "EditorialFootage":
-        return parse_editorialfootage_mhtml(pdf_bytes), "EditorialFootage"
-
-    elif agency == "Getty/iStock":
-        if pdf_bytes[:4] == b'PK\x03\x04' or b',' in pdf_bytes[:1000] or b'\t' in pdf_bytes[:1000]:
-            return parse_getty_csv(io.BytesIO(pdf_bytes), with_keywords=with_keywords), "Getty/iStock"
-        else:
-            return parse_getty_pdf(pdf_bytes), "Getty/iStock"
-
-    elif agency == "SIPA USA":
-        return None, "SIPA USA (parser not implemented yet)"
-
-    elif agency == "Alamy":
-        return None, "Alamy (parser not implemented yet)"
-
-    elif agency == "Adobe":
-        return None, "Adobe (parser not implemented yet)"
-
+def parse_pdf(pdf_bytes, agency, with_keywords=False, filename=""):
+    """
+    Parse the uploaded file based on agency and filename.
+    Returns (df, agency) tuple.
+    """
+    filename_lower = filename.lower()
+    # Heuristic: statement-style files have 'statement' or 'dm-' in their name
+    if "statement" in filename_lower or "dm-" in filename_lower:
+        # New statement format
+        return parse_getty_statement_csv(io.BytesIO(pdf_bytes))
     else:
-        return None, agency
+        # Legacy Getty CSV format
+        return parse_getty_csv(io.BytesIO(pdf_bytes), with_keywords=with_keywords)
+```
