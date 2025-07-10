@@ -1,15 +1,14 @@
-import pandas as pd
-from utils.nurphoto_parser import parse_nurphoto_pdf
-from utils.getty_parser import parse_getty_pdf  # this will be created
+import fitz  # PyMuPDF
 
-def parse_pdf(pdf_bytes, agency):
-    if agency == "NurPhoto":
-        df = parse_nurphoto_pdf(pdf_bytes)
-        return df, "NurPhoto"
+def detect_agency_from_text(pdf_bytes):
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    first_page_text = doc[0].get_text().lower()
 
-    elif agency == "Getty/iStock":
-        df = parse_getty_pdf(pdf_bytes)
-        return df, "Getty/iStock"
-
-    # Placeholder for future agencies like SIPA
-    return None, agency
+    if "nurphoto agency" in first_page_text:
+        return "NurPhoto"
+    elif "getty" in first_page_text or "istock" in first_page_text:
+        return "Getty/iStock"
+    elif "sipa" in first_page_text:
+        return "SIPA USA"
+    else:
+        return "Unknown"
