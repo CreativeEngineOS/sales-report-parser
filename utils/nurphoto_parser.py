@@ -24,6 +24,7 @@ def parse_nurphoto_pdf(pdf_bytes):
         lines = entry.strip().split("\n")
 
         data = {
+            "Thumbnail": "",  # Will be populated later
             "Media Number": lines[0].strip(),
             "Filename": "",
             "Original Filename": "",
@@ -65,8 +66,13 @@ def parse_nurphoto_pdf(pdf_bytes):
         data["Slug?"] = extract_slug(data["Original Filename"])
         data["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
         data["Thumbnail Link"] = f"https://www.nurphoto.com/photo/{media_id}/picture/photo"
+        data["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/>"
 
         records.append(data)
 
     df = pd.DataFrame(records)
+    # Move thumbnail to first column position
+    thumbnail_col = df.pop("Thumbnail")
+    df.insert(0, "Thumbnail", thumbnail_col)
+
     return df
