@@ -15,7 +15,9 @@ if uploaded_file:
 
     with st.spinner("Detecting agency and processing file..."):
         if file_type == "text/csv":
-            agency = "Getty/iStock"  # Currently, only Getty CSVs are supported
+            agency = "Getty/iStock"
+        elif uploaded_file.name.lower().endswith(".mhtml"):
+            agency = "NurPhoto"
         else:
             agency = detect_agency_from_text(pdf_bytes)
 
@@ -25,7 +27,6 @@ if uploaded_file:
             st.success(f"Parsed {parsed_agency} report with {len(df)} records")
 
             if "Thumbnail" in df.columns:
-                # Render thumbnails with HTML support if possible
                 st.write("\n**Thumbnail Preview Table**")
                 st.write(df.to_html(escape=False, index=False), unsafe_allow_html=True)
             else:
