@@ -1,8 +1,29 @@
 import pandas as pd
+import csv
+import io
 import re
 
 def parse_getty_csv(csv_file, with_keywords=False):
-    df = pd.read_csv(csv_file)
+    # Try reading with auto-detection of delimiter and encoding
+    try:
+        content = csv_file.read()
+        if isinstance(content, bytes):
+            try:
+                text = content.decode("utf-8")
+            except UnicodeDecodeError:
+                text = content.decode("utf-16")  # fallback if utf-8 fails
+        else:
+            text = content
+
+        # Use csv.Sniffer to detect delimiter
+        sample = text[:2048]
+        dialect = csv.Sniffer().sniff(sample)
+        delimiter = dialect.delimiter
+
+        df = pd.read_csv(io.StringIO(text), delimiter=delimiter)
+
+    except Exception as e:
+        raise ValueError(f"CSV parsing failed: {str(e)}")
 
     # Normalize/rename expected Getty/iStock fields
     df = df.rename(columns={
