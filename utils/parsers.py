@@ -1,5 +1,9 @@
-def parse_pdf(pdf_bytes, agency, slug_override=None):
-    # In your real implementation, parse based on agency
+# utils/parsers.py
+
+import pandas as pd
+
+def parse_pdf(pdf_bytes, agency):
+    # This is a placeholder — implement agency-specific logic later
     dummy_data = {
         "Media Number": ["123456"],
         "Filename": ["example.jpg"],
@@ -7,7 +11,7 @@ def parse_pdf(pdf_bytes, agency, slug_override=None):
         "Fee": [3.99],
         "Currency": ["USD"],
         "Your Share": [1.99],
-        "Slug": [slug_override or "example-slug"]
     }
+
     df = pd.DataFrame(dummy_data)
     return df, agency
