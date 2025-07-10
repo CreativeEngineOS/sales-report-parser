@@ -30,12 +30,15 @@ def parse_getty_pdf(pdf_bytes):
 
     for item in rows:
         try:
-            fee_str = item.get("License Fee", item.get("Amount", "0")).replace("$", "").strip()
-            royalty_str = item.get("Royalty", "0").replace("$", "").strip()
+            # Normalize field keys to strip line breaks
+            item_normalized = {k.replace("\n", " ").strip(): v for k, v in item.items()}
 
-            media_number = item.get("Asset ID") or item.get("Asset Number") or item.get("ID") or ""
-            description = item.get("Title") or item.get("Description") or ""
-            sale_date = item.get("Sales Date") or item.get("Date") or ""
+            fee_str = item_normalized.get("LicenseFee(in USD)(1)", item_normalized.get("LicenseFee", "0")).replace("$", "").strip()
+            royalty_str = item_normalized.get("Gross Royalty(in USD)", "0").replace("$", "").strip()
+
+            media_number = item_normalized.get("AssetNumber") or item_normalized.get("AlternateAsset Number") or ""
+            description = item_normalized.get("Asset Description") or ""
+            sale_date = item_normalized.get("SalesDate") or item_normalized.get("InvoiceDate") or ""
 
             data = {
                 "Media Number": media_number.strip(),
