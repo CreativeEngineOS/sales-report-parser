@@ -64,16 +64,16 @@ def parse_nurphoto_mhtml(mhtml_bytes):
                     pass
 
         media_id = data["Media Number"]
-        data["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
-        data["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/>"
+        if media_id:
+            data["Media Link"] = f"https://www.nurphoto.com/photo/{media_id}"
+            data["Thumbnail"] = f"<img src='https://www.nurphoto.com/photo/{media_id}/picture/photo' width='100'/>"
 
         records.append(data)
 
-  df = pd.DataFrame(records)
+    df = pd.DataFrame(records)
 
-if "Thumbnail" in df.columns:
-    thumb_col = df.pop("Thumbnail")
-    df.insert(0, "Thumbnail", thumb_col)
+    if "Thumbnail" in df.columns:
+        thumb_col = df.pop("Thumbnail")
+        df.insert(0, "Thumbnail", thumb_col)
 
-return df
-
+    return df
