@@ -1,11 +1,14 @@
 import pandas as pd
 from bs4 import BeautifulSoup
+import quopri
 import re
 
 def parse_nurphoto_mhtml(mhtml_bytes):
-    soup = BeautifulSoup(mhtml_bytes, "html.parser")
-    td_elements = soup.find_all("td")
+    # Decode quoted-printable content
+    decoded_html = quopri.decodestring(mhtml_bytes).decode("utf-8", errors="ignore")
+    soup = BeautifulSoup(decoded_html, "html.parser")
 
+    td_elements = soup.find_all("td")
     records = []
     record_blocks = []
 
