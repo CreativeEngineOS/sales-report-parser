@@ -7,14 +7,14 @@ st.title("📊 Sales Report Parser & Formatter")
 
 include_keywords = st.checkbox("🔑 Fetch Keywords from iStock", value=False)
 
-uploaded_file = st.file_uploader("Upload a Sales Report (PDF, CSV, or MHTML)", type=["pdf", "csv", "mhtml"])
+uploaded_file = st.file_uploader("Upload a Sales Report (PDF, CSV, MHTML, or TXT)", type=["pdf", "csv", "mhtml", "txt"])
 
 if uploaded_file:
     pdf_bytes = uploaded_file.read()
     file_type = uploaded_file.type
 
     with st.spinner("Detecting agency and processing file..."):
-        if file_type == "text/csv":
+        if file_type in ["text/csv", "text/plain"] or uploaded_file.name.endswith(".txt"):
             agency = "Getty/iStock"
         elif uploaded_file.name.lower().endswith(".mhtml"):
             agency = "NurPhoto"
