@@ -3,6 +3,7 @@ import pandas as pd
 import fitz  # PyMuPDF for PDF text parsing
 from utils.nurphoto_parser import parse_nurphoto_pdf
 from utils.nurphoto_mhtml_parser import parse_nurphoto_mhtml
+from utils.editorialfootage_mhtml_parser import parse_editorialfootage_mhtml
 from utils.getty_parser import parse_getty_pdf
 from utils.getty_csv_parser import parse_getty_csv
 # from utils.sipa_parser import parse_sipa_pdf
@@ -15,6 +16,8 @@ def detect_agency_from_text(pdf_bytes):
 
     if "nurphoto agency" in first_page_text:
         return "NurPhoto"
+    elif "editorialfootage" in first_page_text:
+        return "EditorialFootage"
     elif "getty" in first_page_text or "istock" in first_page_text:
         return "Getty/iStock"
     elif "sipa" in first_page_text:
@@ -33,8 +36,10 @@ def parse_pdf(pdf_bytes, agency, with_keywords=False, filename=None):
         else:
             return parse_nurphoto_pdf(pdf_bytes), "NurPhoto"
 
+    elif agency == "EditorialFootage":
+        return parse_editorialfootage_mhtml(pdf_bytes), "EditorialFootage"
+
     elif agency == "Getty/iStock":
-        # Detect if it's a CSV by checking for commas or PK (ZIP signature)
         if pdf_bytes[:4] == b'PK\x03\x04' or b',' in pdf_bytes[:1000] or b'\t' in pdf_bytes[:1000]:
             return parse_getty_csv(io.BytesIO(pdf_bytes), with_keywords=with_keywords), "Getty/iStock"
         else:
