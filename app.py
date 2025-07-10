@@ -7,7 +7,7 @@ st.title("📊 Sales Report Parser & Formatter")
 
 include_keywords = st.checkbox("🔑 Fetch Keywords from iStock", value=False)
 
-uploaded_file = st.file_uploader("Upload a Sales Report (PDF or CSV)", type=["pdf", "csv"])
+uploaded_file = st.file_uploader("Upload a Sales Report (PDF, CSV, or MHTML)", type=["pdf", "csv", "mhtml"])
 
 if uploaded_file:
     pdf_bytes = uploaded_file.read()
