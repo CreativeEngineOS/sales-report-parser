@@ -9,7 +9,7 @@ def parse_getty_pdf(pdf_bytes):
         for page in pdf.pages:
             table = page.extract_table()
             if table:
-                headers = [h.strip() for h in table[0]]
+                headers = [h.strip() for h in table[0] if h]
                 for row in table[1:]:
                     if len(row) < len(headers):
                         continue  # skip malformed rows
@@ -20,13 +20,19 @@ def parse_getty_pdf(pdf_bytes):
 
     for item in rows:
         try:
-            fee_str = item.get("License Fee", "0").replace("$", "").strip()
+            # Extract and sanitize monetary fields
+            fee_str = item.get("License Fee", item.get("Amount", "0")).replace("$", "").strip()
             royalty_str = item.get("Royalty", "0").replace("$", "").strip()
 
+            # Extract asset ID from any potential column
+            media_number = item.get("Asset ID") or item.get("Asset Number") or item.get("ID") or ""
+            description = item.get("Title") or item.get("Description") or ""
+            sale_date = item.get("Sales Date") or item.get("Date") or ""
+
             data = {
-                "Media Number": item.get("Asset ID", item.get("Asset Number", "")).strip(),
-                "Description": item.get("Title", item.get("Description", "")).strip(),
-                "Sale Date": item.get("Sales Date", "").strip(),
+                "Media Number": media_number.strip(),
+                "Description": description.strip(),
+                "Sale Date": sale_date.strip(),
                 "Fee": float(fee_str) if fee_str else 0.0,
                 "Currency": "USD",
                 "Your Share (%)": 0,
