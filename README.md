@@ -1,4 +1,4 @@
-# Sales Report Parser
+# Sales Report Parser (v2B)
 
 ## 🛠 The Swiss Army Knife for Sales Report Parsing
 
