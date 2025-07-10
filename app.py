@@ -5,6 +5,8 @@ from utils.parsers import parse_pdf, detect_agency_from_text
 st.set_page_config(page_title="Sales Report Extractor", layout="wide")
 st.title("📊 Sales Report Parser & Formatter")
 
+include_keywords = st.checkbox("🔑 Fetch Keywords from iStock", value=False)
+
 uploaded_file = st.file_uploader("Upload a Sales Report (PDF or CSV)", type=["pdf", "csv"])
 
 if uploaded_file:
@@ -17,7 +19,7 @@ if uploaded_file:
         else:
             agency = detect_agency_from_text(pdf_bytes)
 
-        df, parsed_agency = parse_pdf(pdf_bytes, agency)
+        df, parsed_agency = parse_pdf(pdf_bytes, agency, with_keywords=include_keywords)
 
         if df is not None and not df.empty:
             st.success(f"Parsed {parsed_agency} report with {len(df)} records")
