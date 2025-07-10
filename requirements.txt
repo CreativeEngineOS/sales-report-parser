@@ -1,18 +1,14 @@
-# Core UI
+# UI
 streamlit
 
 # PDF parsing
-PyMuPDF
 pdfplumber
+PyMuPDF
 
-# Data processing
+# CSV & encoding
 pandas
-
-# Web scraping for keywords
-beautifulsoup4
-requests
-
-# Optional CSV encoding handling
 chardet
 
+# Web scraping
 beautifulsoup4==4.12.3
+requests
