@@ -3,15 +3,13 @@ import pandas as pd
 import re
 
 def extract_slug(filename):
-    # Return True if the filename has an internal slug format
     return bool(re.search(r'(BS|BAS)?\d{4,}_[A-Za-z0-9]+_.*__', filename))
 
 def parse_nurphoto_pdf(pdf_bytes):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     text = "\n".join(page.get_text() for page in doc)
 
-    # Split entries using "Media Number:" as the key delimiter
-    entries = text.split("Media Number:")[1:]  # drop header
+    entries = text.split("Media Number:")[1:]
 
     records = []
 
@@ -32,34 +30,29 @@ def parse_nurphoto_pdf(pdf_bytes):
         }
 
         for line in lines[1:]:
-            if line.startswith("Filename:"):
-                data["Filename"] = line.split("Filename:")[1].strip()
-            elif line.startswith("Original Filename:"):
-                data["Original Filename"] = line.split("Original Filename:")[1].strip()
-            elif line.startswith("Customer:"):
-                data["Customer"] = line.split("Customer:")[1].strip()
-            elif line.startswith("Credit:"):
-                data["Credit"] = line.split("Credit:")[1].strip()
-            elif line.startswith("Description:"):
-                data["Description"] = line.split("Description:")[1].strip()
-            elif line.startswith("Fee:"):
-                fee_str = line.split("Fee:")[1].strip().replace("€", "").replace(",", ".")
-                try:
+            line_clean = line.lower().replace(" ", "")
+            try:
+                if "filename:" in line_clean and not data["Filename"]:
+                    data["Filename"] = line.split(":")[-1].strip()
+                elif "originalfilename:" in line_clean and not data["Original Filename"]:
+                    data["Original Filename"] = line.split(":")[-1].strip()
+                elif "customer:" in line_clean and not data["Customer"]:
+                    data["Customer"] = line.split(":")[-1].strip()
+                elif "credit:" in line_clean and not data["Credit"]:
+                    data["Credit"] = line.split(":")[-1].strip()
+                elif "description:" in line_clean and not data["Description"]:
+                    data["Description"] = line.split("Description:")[-1].strip()
+                elif "fee:" in line_clean:
+                    fee_str = line.split(":")[-1].strip().replace("\u20ac", "").replace(",", ".")
                     data["Fee"] = float(fee_str) if fee_str else 0.0
-                except ValueError:
-                    data["Fee"] = 0.0
-            elif line.startswith("Your share (%):"):
-                percent = line.split(":")[1].strip()
-                try:
+                elif "yourshare(%):" in line_clean:
+                    percent = line.split(":")[-1].strip()
                     data["Your Share (%)"] = int(percent) if percent else 0
-                except ValueError:
-                    data["Your Share (%)"] = 0
-            elif line.startswith("Your share (€):"):
-                share_str = line.split(":")[1].strip().replace("€", "").replace(",", ".")
-                try:
+                elif "yourshare(\u20ac):" in line_clean:
+                    share_str = line.split(":")[-1].strip().replace("\u20ac", "").replace(",", ".")
                     data["Your Share"] = float(share_str) if share_str else 0.0
-                except ValueError:
-                    data["Your Share"] = 0.0
+            except Exception:
+                continue
 
         media_id = data["Media Number"]
         data["Slug?"] = extract_slug(data["Original Filename"])
